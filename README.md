@@ -20,3 +20,15 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
 
 ## Contact
 For any questions or issues, please open an issue on this repository or contact the maintainer at [pedro.c.osorio@gmail.com].
+
+## ToDo List ✅ 🚀
+
+✅ **ROI selection and volume editing in 3D slicer**  🚀
+
+🔲 **Sending and retrieving the volumes from the server** 
+
+🔲 **Server side, processing, inference and return to client** 
+
+🔲 **Update ReadMe**  
+
+🔲 **Make opensource extension** 
