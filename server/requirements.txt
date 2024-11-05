@@ -136,4 +136,5 @@ Werkzeug==2.1.2
 wrapt==1.14.1
 yarl==1.7.2
 zipp==3.8.0
-flask
+# slicer / server
+Flask==3.0.3
