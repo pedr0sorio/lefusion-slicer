@@ -1,0 +1,10 @@
+*.npz
+server/data/in/*.nii.gz
+server/data/in/*.npz
+server/LeFusion_LIDC/outputs
+
+server/LeFusion_LIDC/LeFusion_model
+server/LeFusion_LIDC/outputs
+server/LeFusion_LIDC/*.ipynb
+*.pyc
+.ipynb_checkpoints
