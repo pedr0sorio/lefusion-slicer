@@ -5,36 +5,70 @@ import subprocess
 from datetime import datetime
 import numpy as np
 import os
+import select
+
+from LeFusion_LIDC.paths import IN_SERVER_DATA_DIR, OUT_SERVER_DATA_DIR
 
 app = Flask(__name__)
 
-# Server Paths
-DATA_DIR = Path('data')
-IN_DATA_DIR = DATA_DIR / 'in'
-OUT_DATA_DIR = DATA_DIR / 'out' # TODO ensure the out files are saved here
 
 @app.route('/run_script', methods=['POST'])
 def run_script():
     # Path to now uploaded .npz file with whole scan + bboxes idx
-    img_path = request.form.get('input')
-    # Lesion intensity/texture control
-    histogram = request.form.get('histogram')
-    # NOTE Add other hps from data_dict in inpainting helper
-    # ...
+    img_path_list = request.form.getlist('input')
+    debug = request.form.get('debug')
 
-    # Run tests
-    npz_data = np.load( IN_DATA_DIR / img_path, 'r', allow_pickle=True)
-    whole_scan = npz_data['imgs']
-    bboxes = npz_data['boxes_numpy']
+    inference_script_path = os.path.abspath('LeFusion_LIDC/test/inference.py')
+    args = f"""
+    python
+    {inference_script_path}
+    dataset_root_dir={IN_SERVER_DATA_DIR.as_posix()}
+    target_img_path={OUT_SERVER_DATA_DIR.as_posix()}
+    schedule_jump_params.jump_length=1
+    schedule_jump_params.jump_n_sample=1
+    batch_size=1
+    slicer=True
+    """.replace("    ", "").split("\n")
+    args = [arg for arg in args if arg != ""]
+    if debug:
+        print(f" ----------- {debug = } -----------")
+        args.append("debug=True")
 
-    print(f'Whole scan shape: {whole_scan.shape}')
-    print(f'Whole scan max: {np.max(whole_scan)}')
-    print(f'Whole scan min: {np.min(whole_scan)}')
 
-    # # TODO Run inpainting and save to OUT_DATA_DIR
-    # inpaintVolume(scan = whole_scan, bbox = bboxes, histogram = histogram, out_dir = OUT_DATA_DIR)
+    process = subprocess.Popen(
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True
+    )
 
-    return 'Script ran successfully'
+    # Read stdout and stderr continuously
+    while True:
+        reads = [process.stdout.fileno(), process.stderr.fileno()]
+        ret = select.select(reads, [], [])
+        for fd in ret[0]:
+            if fd == process.stdout.fileno():
+                output = process.stdout.readline()
+                if output:
+                    print(output, end='', flush=True)
+            if fd == process.stderr.fileno():
+                error = process.stderr.readline()
+                if error:
+                    print(error, end='', flush=True)
+
+        if process.poll() is not None:
+            break
+
+    # Ensure all remaining output is printed
+    for output in process.stdout:
+        print(output, end='', flush=True)
+    for error in process.stderr:
+        print(error, end='', flush=True)
+
+    stderr = process.stderr.read()
+    print('===========================\n', stderr, '\n===========================')
+    
+    if process.returncode == 0:
+        return f'Success: {output.strip()}'
+    else:
+        return f'Error: {stderr.strip()}'
 
 
 @app.route('/download_file', methods=['GET'])
@@ -48,8 +82,8 @@ def upload_file():
     file = request.files['file']
 
     if file:
-        save_path = IN_DATA_DIR / file.filename
-        os.makedirs(IN_DATA_DIR, exist_ok=True)
+        save_path = IN_SERVER_DATA_DIR / file.filename
+        os.makedirs(IN_SERVER_DATA_DIR, exist_ok=True)
         file.save(save_path)
         return 'File uploaded successfully to %s' % save_path
 
@@ -67,6 +101,12 @@ def upload_model():
 
 @app.route('/test_server', methods=['GET'])
 def test():
+    print(f'IN_SERVER_DATA_DIR: {IN_SERVER_DATA_DIR}')
+    print(f'OUT_SERVER_DATA_DIR: {OUT_SERVER_DATA_DIR}')
+    print(f'os.getcwd(): {os.getcwd()}')
+    # Absolute path to the inference script
+    inference_script_path = os.path.abspath('LeFusion_LIDC/test/inference.py')
+    print(f'inference_script_path: {inference_script_path}')
     date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return f'Server is up and running as of {date}'
 

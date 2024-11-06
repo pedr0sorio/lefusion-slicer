@@ -1,3 +1,4 @@
 from dataset.lidc_hist_3d import LIDC3D_HIST_Dataset
 from dataset.lidc_hist_3d_in import LIDC3D_HIST_InDataset
+from dataset.lidc_hist_3d_in_slicer import LIDC3D_HIST_InSlicerDataset
 

@@ -3,10 +3,12 @@ diffusion_depth_size: 48
 diffusion_num_channels: 1
 dim_mults: [1,2,4,8]
 
-test_txt_dir: ???
-dataset_root_dir: ???
-target_img_path: ???
-target_label_path: ???
+test_txt_dir: null # unused
+dataset_root_dir: null # set from paths.py
+target_img_path: null # unused
+target_label_path: null # unused
+slicer: ???
+debug: false
 
 load_milestone: False
 num_workers: 20
@@ -23,6 +25,7 @@ ema_decay: 0.995
 amp: False
 num_sample_rows: 1
 gpus: 0
+batch_size: 1
 
 
 attention_resolutions: 32,16,8
@@ -74,6 +77,6 @@ inpa_inj_sched_prev_cumnoise: false
 schedule_jump_params:
   t_T: 300
   n_sample: 1
-  jump_length: 10 
-  jump_n_sample: 10
+  jump_length: 2 # 10
+  jump_n_sample: 2 # 10
 

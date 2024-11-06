@@ -8,3 +8,5 @@ server/LeFusion_LIDC/outputs
 server/LeFusion_LIDC/*.ipynb
 *.pyc
 .ipynb_checkpoints
+
+server/outputs
