@@ -26,6 +26,8 @@ For any questions or issues, please open an issue on this repository or contact 
 ✅ **ROI selection and volume editing in 3D slicer**  🚀
 
 🔲 **Sending and retrieving the volumes from the server** 
+- Make this repo run with functions and not scripts:
+    - Refactor LeFusion inference script to a function with parameters that is called directly in the server script as opposed to creating a seperate script.
 
 🔲 **Server side, processing, inference and return to client** 
 

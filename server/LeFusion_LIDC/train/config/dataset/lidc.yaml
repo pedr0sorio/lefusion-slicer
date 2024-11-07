@@ -1,0 +1,5 @@
+name: LIDC_HIST_3D
+root_dir: ???
+test_txt_dir: ???
+image_channels: 1
+augmentation: True
