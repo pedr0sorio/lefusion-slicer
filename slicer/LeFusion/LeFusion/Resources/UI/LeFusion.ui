@@ -26,14 +26,14 @@
       <item row="0" column="2">
        <widget class="QPlainTextEdit" name="txtPort">
         <property name="plainText">
-         <string>Port</string>
+         <string>8888</string>
         </property>
        </widget>
       </item>
       <item row="0" column="0">
        <widget class="QPlainTextEdit" name="txtIP">
         <property name="plainText">
-         <string>IP Address</string>
+         <string>127.0.0.1</string>
         </property>
        </widget>
       </item>
@@ -47,6 +47,13 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="0" column="1">
+       <widget class="QPushButton" name="processButton">
+        <property name="text">
+         <string>Process Volume</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
        <widget class="QPushButton" name="ResizeButton">
         <property name="text">
          <string>Resize to 1 x 1 x 2 mm</string>
@@ -62,14 +69,14 @@
       <string>ROI</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="0">
+      <item row="1" column="0">
        <widget class="QPushButton" name="btnROI">
         <property name="text">
          <string>Add Bounding Box</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="1" column="1">
        <widget class="QPushButton" name="ProcessROIpushButton">
         <property name="text">
          <string>Process Selections </string>

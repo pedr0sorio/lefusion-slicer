@@ -1,7 +1,7 @@
 import logging
 import os
-from typing import Annotated, Dict, Optional, Union
-
+from typing import Annotated, Dict, List, Optional, Union
+from pathlib import Path
 import vtk
 
 import slicer
@@ -24,13 +24,25 @@ import time
 import datetime
 from copy import deepcopy
 
+try:
+    import torchio
+except:
+    slicer.util.pip_install("torchio")
+    import torchio
+
 # Anatomical coordinate system (IJK)
 # i (patient right to left)
 # j (anterior to posterior)
 # k (anatomical height - inferior to superior))
 FIXED_CROP_SIZE_IJK = [64, 64, 32]  # voxel (IJK)
 FIXED_CROP_SIZE_KJI = [32, 64, 64]  # voxel (KJI)
-FIXED_RESOLUTION = [1, 1, 2]  # mm (IJK)
+# FIXED_RESOLUTION = [1, 1, 2]  # mm (IJK)
+FIXED_RESOLUTION = [0.96, 0.96, 1.25]  # mm (IJK)
+
+# Server Paths
+SERVER_DATA_DIR = Path("data")
+SERVER_IN_DATA_DIR = SERVER_DATA_DIR / "in"
+SERVER_OUT_DATA_DIR = SERVER_DATA_DIR / "out"
 
 #
 # Utils
@@ -189,6 +201,7 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Preprocessing
         # TODO Possibly add more preprocessing options depending on preliminary results
         self.ui.ResizeButton.connect("clicked(bool)", self.logic.resize_CT_slicer)
+        self.ui.processButton.connect("clicked(bool)", self.logic.processScan)
 
         # Define Hyperparameters for model inference
         self.ui.histType.addItems(["type 1", "type 2", "type 3"])
@@ -198,7 +211,6 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
         # Buttons
-        self.ui.ResizeButton.connect("clicked(bool)", self.logic.resize_CT_slicer)
         self.ui.btnROI.connect("clicked(bool)", self.drawBBox)
         # Process selections to match exapected model input dimensions
         self.ui.ProcessROIpushButton.connect(
@@ -365,6 +377,14 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
     allSegmentsNode = None
     newModelUploaded = False
     segmentation_res_path = "/home/rasakereh/Desktop"
+    processing_tfs = torchio.Compose(
+        [
+            torchio.Clamp(out_min=-1000, out_max=400),
+            # torchio.RescaleIntensity(in_min_max=(-1000, 400), out_min_max=(-1.0, 1.0)),
+            # torchio.CropOrPad(target_shape=(32, 64, 64)),
+        ]
+    )
+    # torchio.RescaleIntensity(in_min_max=(-1.0, 1.0), out_min_max=(-1000, 400)),
 
     def __init__(self) -> None:
         """Called when the logic class is instantiated. Can be used for initializing member variables."""
@@ -372,6 +392,9 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
 
         # Clear the python console
         slicer.app.pythonConsole().clear()
+
+        # Print the module name
+        print("LeFusionLogic - pedr0sorio")
 
     def getParameterNode(self):
         return LeFusionParameterNode(super().getParameterNode())
@@ -598,44 +621,56 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
 
         self.progressbar.close()
 
-    def inpainting_helper(self, img_path, result_path, ip, port, job_event):
+    def inpainting_helper(
+        self, img_path_list: List[str], result_path_list: List[str], ip, port, job_event
+    ):
         """Send and retrieve data from server for inpainting task."""
         # TODO later add choice for specif weights. For now assuming all weights are
         # already in the server.
 
-        # 1. Send whole processed volume and bounding boxes to server
-        self.progressbar.setLabelText(" uploading image... ")
+        # 1. Send the various preprocessed crops to the server
+        self.progressbar.setLabelText(" Uploading crops ... ")
         upload_url = "http://%s:%s/upload" % (ip, port)
 
-        with open(img_path, "rb") as file:
-            files = {"file": file}
-            response = requests.post(upload_url, files=files)
+        for img_path in img_path_list:
+            with open(img_path, "rb") as file:
+                files = {"file": file}
+                response = requests.post(upload_url, files=files)
 
-        # 2. Run inference script on server
-        self.progressbar.setLabelText(" inpainting ... ")
+        # 2. Run inference script on server. Single Post Call.
+        # NOTE Using the various uploaded crops as batch dimension
+        self.progressbar.setLabelText(" Inpainting crops ... ")
         run_script_url = "http://%s:%s/run_script" % (ip, port)
 
-        data_dict = {
-            "input": os.path.basename(img_path),
-            "histogram": self.widget.ui.histType.currentText,
-            # TODO Add here other hps for the inpainting model
+        in_data_dict = {
+            "input": [os.path.basename(img_path) for img_path in img_path_list],
+            # "debug": True,
         }
-        print(f"data sent is: {data_dict}")
+        print(f"data sent is: {in_data_dict}")
         response = requests.post(
             run_script_url,
-            data=data_dict,
+            data=in_data_dict,
         )
 
-        # 3. Downloading results saved on server file system
-        self.progressbar.setLabelText(" downloading results... ")
-        download_file_url = "http://%s:%s/download_file" % (ip, port)
-        response = requests.get(
-            download_file_url,
-            data={"output": "data/video/segs_tiny/%s" % os.path.basename(img_path)},
-        )
+        # 3. Downloading results saved on server file system. Download / save generated
+        # crop one by one.
+        self.progressbar.setLabelText(" Downloading results ... ")
 
-        with open(result_path, "wb") as f:
-            f.write(response.content)
+        for img_path, result_path in zip(img_path_list, result_path_list):
+            download_file_url = "http://%s:%s/download_file" % (ip, port)
+            out_data_dict = {
+                # Path where the results in server are saved
+                "output": (SERVER_OUT_DATA_DIR / os.path.basename(img_path)).as_posix()
+            }
+            response = requests.get(
+                download_file_url,
+                data=out_data_dict,
+            )
+
+            # Save response to result_path in local which is a temporary file
+            with open(result_path, "wb") as f:
+                f.write(response.content)
+            print(f"Results downloaded to local slicer temp file: {result_path}")
 
         job_event.set()
 
@@ -645,28 +680,52 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
 
         # Get the bounding box for each ROI
         bboxes_dict = self.get_bounding_box()
+        n_crops = len(bboxes_dict["bboxes_kji_numpy"])
+        print(f"Running Inpainting for {n_crops} crops ...   \n...")
 
-        # TODO Save the image data, bboxes and potential inference HPs to a temp directory
         # NOTE First release will use the same preset LESION MASK for every inpainting task. Once DiffMask is
         # avaialble, the mask will be infered from the bounding box.
         with tempfile.TemporaryDirectory() as tmpdirname:
-            img_path = "%s/img_data.npz" % (tmpdirname,)
-            result_path = "%s/result.npz" % (tmpdirname,)
-            np.savez(
-                img_path,
-                imgs=self.image_data,  # voxel array
-                # list of all ROI's bbox
-                boxes_numpy=bboxes_dict["bboxes_kji_numpy"],  # in numpy array indexes
-                # boxes_ijk=bboxes_dict["bboxes_ijk"],  # in ikj indexes
-                # boxes_ras=bboxes_dict["bbox_ras"],  # in ras coordinates
-            )
+            # Save the multiple crops as temp files locally. Create also the temp files
+            # for their corresponding inpainted versions.
+            img_path_list, result_path_list = [], []
+            for bbox_idx in range(n_crops):
+                img_path = "%s/img_data%s.npz" % (tmpdirname, bbox_idx)
+                result_path = "%s/result%s.npz" % (tmpdirname, bbox_idx)
+
+                # Get crop from scan
+                bbox = bboxes_dict["bboxes_kji_numpy"][bbox_idx]
+                crop = self.image_data[
+                    bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]
+                ]
+
+                # Get histogram int type
+                histogram_type = [
+                    int(s)
+                    for s in self.widget.ui.histType.currentText.split()
+                    if s.isdigit()
+                ][0]
+
+                np.savez(
+                    img_path,
+                    data=crop,  # voxel array of crop
+                    histogram=histogram_type,  # histogram type
+                    # TODO eventually allow per crop histogram specification. Needs UI change.
+                    # NOTE We can add here other hps for the inpainting model
+                    # ...
+                    boxes_numpy=bboxes_dict["bboxes_kji_numpy"],  # in numpy indexes
+                    # boxes_ijk=bboxes_dict["bboxes_ijk"],  # in ikj indexes
+                    # boxes_ras=bboxes_dict["bbox_ras"],  # in ras coordinates
+                )
+                img_path_list.append(img_path)
+                result_path_list.append(result_path)
 
             # Send the data to the server and get response saved in result_path
             self.run_on_background(
                 self.inpainting_helper,
                 (
-                    img_path,
-                    result_path,
+                    img_path_list,
+                    result_path_list,
                     self.widget.ui.txtIP.plainText.strip(),  # IP address
                     self.widget.ui.txtPort.plainText.strip(),  # Port number
                 ),
@@ -682,38 +741,60 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
 
             # TODO Get Response and create a new volume node with the inpainted lesion
             # Loading results: Expects the inpainted crop with lesion
-            # inpainted_crop_numpy = np.load(result_path, allow_pickle=True)["crop"]
-            inpainted_crop_numpy = np.array(
-                [np.zeros(FIXED_CROP_SIZE_KJI) for _ in bboxes_dict["bboxes_kji_numpy"]]
-            )
-            self.addInpaintedCrops(
-                inpainted_crop_numpy=inpainted_crop_numpy,
-                bboxes_dict=bboxes_dict,
-                volume_node=self.ResizedVolumeNode,
-            )
+            self.progressbar.setLabelText(" Incorporating the results in the scan ... ")
+            print(" Incorporating the results in the scan ... ")
+
+            for bbox_idx in range(n_crops):
+                retrieved_response = np.load(
+                    result_path_list[bbox_idx], allow_pickle=True
+                )
+                inpainted_crop_numpy = retrieved_response["data_inpainted"]
+                print(f"{inpainted_crop_numpy.shape = }")
+                mask = retrieved_response[
+                    "mask"
+                ]  # TODO unused for now later add to scene
+                retrieved_bbox = retrieved_response.get("boxes_numpy")
+                print(f"{np.shape(retrieved_bbox) = }")
+                print(f"{retrieved_bbox = }")
+                print(f"{bboxes_dict['bboxes_kji_numpy'][bbox_idx] = }")
+                if retrieved_bbox is None:
+                    print("Loading bbox coords from server...")
+                    retrieved_bbox = bboxes_dict["bboxes_kji_numpy"][bbox_idx]
+                else:
+                    retrieved_bbox = retrieved_bbox[0].squeeze()
+
+                # Iteratively replace the multiple inpainted crops in the volume
+                self.addInpaintedCrop(
+                    crop_numpy=inpainted_crop_numpy,
+                    bbox=retrieved_bbox,
+                    volume_node=self.ResizedVolumeNode,
+                )
 
         # Remove selected ROIs
         roiNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
         for roiNode in roiNodes:
             slicer.mrmlScene.RemoveNode(roiNode)
 
-    def addInpaintedCrops(
-        self, inpainted_crop_numpy: np.ndarray, bboxes_dict: Dict, volume_node
+    def addInpaintedCrop(
+        self,
+        crop_numpy: np.ndarray,
+        bbox,
+        volume_node,
     ):
         """Add the inpainted crop to a volume node in the scene."""
         # self.captureImage(resized=True) -> Not needed because it is already loaded
         # Edit the volume data i.e. self.image_data
         inpainted_volume = deepcopy(self.image_data)
+        print("inpainted_volume shape: ", inpainted_volume.shape)
 
-        # Iteratively replace the multiple inpainted crops in the volume
-        for idx, bbox in enumerate(bboxes_dict["bboxes_kji_numpy"]):
-            print("inpainted_crop_numpy shape: ", inpainted_crop_numpy.shape)
-            print(
-                f"{inpainted_volume[bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]].shape = }"
-            )
-            inpainted_volume[
-                bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]
-            ] = inpainted_crop_numpy[idx]
+        print("inpainted_crop_numpy shape: ", crop_numpy.shape)
+        print(f"{bbox = }")
+        print(
+            f"{inpainted_volume[bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]].shape = }"
+        )
+        inpainted_volume[bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]] = (
+            crop_numpy
+        )
 
         # Update resized volume node with the inpainted volume
         self.updateImage(inpainted_volume, volume_node)
@@ -753,40 +834,26 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         slicer.mrmlScene.RemoveNode(cliNode)
         self.captureImage(resized=True)
 
-    def processScanServer(self):
-        """
-        Use Slicer's resample scalar volume module to resize the volume to a fixed
-        resolution. Creates a new volume node with the resized volume.
-        """
-        print(
-            "[Volume Resizing] "
-            "Resizing volume to fixed (2x1x1) mm expected by the inpainuting model."
-        )
-        self.captureImage()
-        volumesLogic = slicer.modules.volumes.logic()
-        self.ResizedVolumeNode = volumesLogic.CloneVolume(
-            slicer.mrmlScene, self.volume_node, "ResizedVolumeSlicer"
-        )
-        # Set parameters
-        parameters = {
-            "InputVolume": self.volume_node.GetID(),
-            "referenceVolume": self.volume_node.GetID(),
-            "OutputVolume": self.ResizedVolumeNode.GetID(),
-            "outputPixelSpacing": FIXED_RESOLUTION,
-            "interpolationMode": "linear",
-        }
-        # Execute
-        resampleModule = slicer.modules.resamplescalarvolume
-        cliNode = slicer.cli.runSync(resampleModule, None, parameters)
-        # Process results
-        if cliNode.GetStatus() & cliNode.ErrorsMask:
-            # error
-            errorText = cliNode.GetErrorText()
-            slicer.mrmlScene.RemoveNode(cliNode)
-            raise ValueError("CLI execution failed: " + errorText)
-        # success
-        slicer.mrmlScene.RemoveNode(cliNode)
+    def processScan(self):
+        print("[Volume Processing] Clipping with torchio.")
         self.captureImage(resized=True)
+        processed_volume = deepcopy(self.image_data)
+
+        # print("Before TIO")
+        # print(np.shape(processed_volume))
+        # print(np.max(processed_volume))
+        # print(np.min(processed_volume))
+
+        # Use tio transforms to process the volume
+        processed_volume = self.processing_tfs(processed_volume[None, ...])
+
+        # print("After TIO")
+        # print(np.shape(processed_volume))
+        # print(np.max(processed_volume))
+        # print(np.min(processed_volume))
+
+        # Update resized volume node with the inpainted volume
+        self.updateImage(processed_volume[0], volume_node=self.ResizedVolumeNode)
 
     def updateImage(self, new_image, volume_node):
         self.image_data[:, :, :] = new_image
