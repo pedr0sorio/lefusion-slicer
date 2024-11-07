@@ -61,7 +61,6 @@ class LIDC3D_HIST_InSlicerDataset(Dataset):
         # ... Load volume from path
         npz_data = self.load_npz_data(path = npz_data_path)
         crop_scan = npz_data['data'][None, ...] # add channel dim for tio tfs
-        affine = npz_data['affine']
         histogram = npz_data['histogram']
         bbox_kji = npz_data['boxes_numpy']
 
@@ -80,7 +79,6 @@ class LIDC3D_HIST_InSlicerDataset(Dataset):
             'GT': crop_scan,
             'GT_name': npz_data_path,
             'gt_keep_mask': mask.data,
-            'affine': affine,
             'histogram': histogram,
             'bbox_kji': bbox_kji,
         }
