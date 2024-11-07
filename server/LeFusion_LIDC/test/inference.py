@@ -117,17 +117,22 @@ def main(conf: DictConfig):
     for batch in iter(dl):
         print("Batch %i / %i" % (idx + 1, n_batches))
 
-        histogram_types = batch['histogram']
-        print(f"selected texture clusters (1, 2 or 3): {histogram_types}")
+        # Get this batch's size because of drop_last=True
+        batch_size = batch['GT'].shape[0]
+
         # TODO allow different conds for different elements in the batch. For now, all 
         # elements in the batch will have the same cond
-        type_ = histogram_types[0] # use the first cond in the batch for all elements
-        hist = th.tensor(cluster_centers[type_ - 1])
-        print(f"{perturb_tensor(tensor=hist).shape = }")
-        hist = perturb_tensor(tensor=hist)
+        # NOTE It works OoO to get the histogram type for each element in the batch
+        histogram_types = batch['histogram']
+        print(f"selected texture clusters (1, 2 or 3): {histogram_types}")
+        hist_batch = [th.tensor(cluster_centers[type_ - 1]) for type_ in histogram_types]
+        perturbed_hist_batch = [perturb_tensor(tensor=hist) for hist in hist_batch]
+        hist = th.stack(perturbed_hist_batch)
         print(f"{hist.shape = }")
-        hist = hist.unsqueeze(0)
-        print(f"{hist.shape = }")
+        # hist = hist.repeat(batch_size, 1) # adding batch dimension
+        # hist = th.tensor([[99] * 16, [11] * 16])
+        # hist = th.ones_like(hist.unsqueeze(0)) # adding extra vector dimension
+        # print(f"{hist.shape = }")
 
         # Send everything to the GPU
         for k in batch.keys():
@@ -141,11 +146,14 @@ def main(conf: DictConfig):
         if gt_keep_mask is not None:
             model_kwargs['gt_keep_mask'] = gt_keep_mask
 
-        # Get this batch's size because of drop_last=True
-        batch_size = model_kwargs["gt"].shape[0]
-
         # Get sample function from model class
         sample_fn = diffusion.p_sample_loop_repaint
+        print(
+            f" --> Input parameter shapes \n"
+            f" ----------> {model_kwargs['gt'].shape = } \n"
+            f" ----------> {model_kwargs['gt_keep_mask'].shape = } \n"
+            f" ----------> {hist.shape = }"
+        )
         # Run Sampling
         result = sample_fn(
             shape = (batch_size, 1, 32, 64, 64),
@@ -192,7 +200,6 @@ def main(conf: DictConfig):
         idx += 1
         if conf.debug:
             raise SystemExit("Debugging mode. Exiting after first batch.")
-            break
 
 
     print("sampling complete")

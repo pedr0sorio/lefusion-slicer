@@ -112,10 +112,10 @@ six==1.16.0
 sk-video==1.1.10
 smmap==5.0.0
 sympy==1.13.1
-tensorboard==2.11.2
-tensorboard-data-server==0.6.1
-tensorboard-plugin-wit==1.8.1
-tensorboardX==2.4.1
+tensorboard # ==2.11.2
+# tensorboard-data-server==0.6.1
+# tensorboard-plugin-wit==1.8.1
+# tensorboardX==2.4.1
 threadpoolctl==3.1.0
 tifffile==2022.8.3
 timm==1.0.8
@@ -132,7 +132,7 @@ typing_extensions==4.2.0
 urllib3==1.26.9
 wandb==0.12.21
 wcwidth==0.2.13
-Werkzeug==2.1.2
+Werkzeug # ==2.1.2
 wrapt==1.14.1
 yarl==1.7.2
 zipp==3.8.0

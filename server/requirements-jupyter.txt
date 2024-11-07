@@ -1,0 +1,12 @@
+ipykernel>=6.27.0
+jupyter>=1.0.0
+jupyter_resource_usage>=1.0.1
+jupyter_server_fileid>=0.9.0
+jupyter_server_mathjax>=0.2.6
+jupyter_server_ydoc>=0.8.0
+jupyterlab_code_formatter>=2.2.1
+jupyterlab_git>=0.50.0
+jupyterlab_iframe>=0.5.0
+jupyterlab_spellchecker>=0.8.4
+nbclassic>=1.0.0
+nbdime>=4.0.1

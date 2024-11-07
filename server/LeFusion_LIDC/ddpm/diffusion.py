@@ -504,11 +504,39 @@ class Unet3D(nn.Module):
         if self.has_cond:
             batch, device = x.shape[0], x.device
             mask = prob_mask_like((batch,), null_cond_prob, device=device)
+            # print(" --------------- DEBUG ---------------")
+            # print(f"{t.shape = }")
+            # print(f"{cond.shape = }")
+            # print(f"{torch.where(rearrange(mask.cpu(), 'b -> b 1'), self.null_cond_emb.cpu(), cond).shape = }")
             cond = cond.to(device)
             cond = torch.where(rearrange(mask, 'b -> b 1'),
                                self.null_cond_emb, cond)
+            # print(f"{cond[0,10] = }")
+            # print(f"{cond[1,10] = }")
+            # print(f"{torch.cat((t.cpu(), cond.cpu()), dim=-1).shape = }")
+            # --------------- DEBUG ---------------
+            # -- bs = 1
+            # t.shape = torch.Size([1, 256])
+            # cond.shape = torch.Size([1, 16]) <------
+            # torch.where(rearrange(mask.cpu(), 'b -> b 1'), self.null_cond_emb.cpu(), cond).shape = torch.Size([1, 16])
+            # torch.cat((t.cpu(), cond.cpu()), dim=-1).shape = torch.Size([1, 272])
 
+            # -- bs = 2
+            # t.shape = torch.Size([2, 256])
+            # cond.shape = torch.Size([1, 16]) <------
+            # torch.where(rearrange(mask.cpu(), 'b -> b 1'), self.null_cond_emb.cpu(), cond).shape = torch.Size([2, 16])
+            # torch.cat((t.cpu(), cond.cpu()), dim=-1).shape = torch.Size([2, 272])
+            
+            # -- bs = 2
+            # t.shape = torch.Size([2, 256])
+            # cond.shape = torch.Size([2, 16]) <------
+            # torch.where(rearrange(mask.cpu(), 'b -> b 1'), self.null_cond_emb.cpu(), cond).shape = torch.Size([2, 16])
+            # torch.cat((t.cpu(), cond.cpu()), dim=-1).shape = torch.Size([2, 272])
+
+            # --------------- DEBUG ---------------
+            # print(" --------------- DEBUG -------------")
             t = torch.cat((t, cond), dim=-1)
+
         h = []
         for block1, block2, spatial_attn, temporal_attn, downsample in self.downs:
             x = block1(x, t)
@@ -773,11 +801,21 @@ class GaussianDiffusion_Nolatent(nn.Module):
                 time_pairs = tqdm(time_pairs)
             for t_last, t_cur in time_pairs:
                 idx_wall += 1
-                t_last_t = t_last * shape[0]
+                # TODO check if this fix is adequate
+                t_last_t = t_last # * shape[0] # batch size
                 if t_cur < t_last: 
                     with (torch.no_grad()):
-                        b = shape[0]
-                        out = self.p_sample_repaint(image_after_step, torch.full((b,), t_last_t, device=device, dtype=torch.long), cond_scale=cond_scale,
+                        b = shape[0] # batch size
+                        # print(" --------------- DEBUG ---------------")
+                        # print(f"{image_after_step.shape = }")
+                        # print(f"{shape[0] = }")
+                        # print(f"{t_last = }")
+                        # print(f"{t_last_t = }")
+                        # print(f"{torch.full((b,), t_last_t, device=device, dtype=torch.long) = }")
+                        # print(" --------------- DEBUG ---------------")
+                        out = self.p_sample_repaint(image_after_step, torch.full(
+                            (b,), t_last_t, device=device, dtype=torch.long
+                            ), cond_scale=cond_scale,
                                                     model_kwargs=model_kwargs,
                                                     conf=conf,
                                                     cond=cond                 )
@@ -1007,7 +1045,12 @@ class Trainer(object):
 
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
- 
+    # print(" --------------- DEBUG ---------------")
+    # print(f"arr.shape: {arr.shape}")
+    # print(f"timesteps: {timesteps}")
+    # # arr.shape: torch.Size([300])
+    # # timesteps: tensor([598, 598], device='cuda:0')
+    # print(" --------------- DEBUG ---------------")
     res = arr[timesteps].float()
 
     while len(res.shape) < len(broadcast_shape):

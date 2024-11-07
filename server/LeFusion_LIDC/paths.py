@@ -17,6 +17,3 @@ PROJECT_SLICER_PATH = PROJECT_ROOT_PATH / "slicer" # lefusion-slicer/slicer
 
 # Project SEED
 SEED = 18021999
-
-os.makedirs(IN_SERVER_DATA_DIR, exist_ok=True)
-os.makedirs(OUT_SERVER_DATA_DIR, exist_ok=True)

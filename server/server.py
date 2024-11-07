@@ -8,6 +8,8 @@ import os
 import select
 
 from LeFusion_LIDC.paths import IN_SERVER_DATA_DIR, OUT_SERVER_DATA_DIR
+os.makedirs(IN_SERVER_DATA_DIR, exist_ok=True)
+os.makedirs(OUT_SERVER_DATA_DIR, exist_ok=True)
 
 app = Flask(__name__)
 
@@ -17,6 +19,15 @@ def run_script():
     # Path to now uploaded .npz file with whole scan + bboxes idx
     img_path_list = request.form.getlist('input')
     debug = request.form.get('debug')
+    jump_length = request.form.get('jump_length')
+    if jump_length is None:
+        jump_length = 1
+    jump_n_sample = request.form.get('jump_n_sample')
+    if jump_n_sample is None:
+        jump_n_sample = 1
+    batch_size = request.form.get('batch_size')
+    if batch_size is None:
+        batch_size = 1
 
     inference_script_path = os.path.abspath('LeFusion_LIDC/test/inference.py')
     args = f"""
@@ -24,9 +35,9 @@ def run_script():
     {inference_script_path}
     dataset_root_dir={IN_SERVER_DATA_DIR.as_posix()}
     target_img_path={OUT_SERVER_DATA_DIR.as_posix()}
-    schedule_jump_params.jump_length=1
-    schedule_jump_params.jump_n_sample=1
-    batch_size=1
+    schedule_jump_params.jump_length={jump_length}
+    schedule_jump_params.jump_n_sample={jump_n_sample}
+    batch_size={batch_size}
     slicer=True
     """.replace("    ", "").split("\n")
     args = [arg for arg in args if arg != ""]
@@ -87,16 +98,16 @@ def upload_file():
         file.save(save_path)
         return 'File uploaded successfully to %s' % save_path
 
-@app.route('/upload_model', methods=['POST'])
-def upload_model():    
-    file = request.files['file']
-    model_name = os.path.basename(file.filename).split('.')[0]
-    checkpoint_dir = "./checkpoints/2.1/%s"%model_name
+@app.route('/flush_memory', methods=['GET'])
+def flush_memory():
+    # Remove all .npz files from IN and OUT directories
+    for directory_path in [IN_SERVER_DATA_DIR, OUT_SERVER_DATA_DIR]:
+        for item in directory_path.iterdir():
+            if item.name.endswith('.npz'):
+                print(f'Removed .npz file: \n  -> {item}')
+                item.unlink()
 
-    Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
-
-    file.save(os.path.join(checkpoint_dir, os.path.basename(file.filename)))
-    return 'Model uploaded successfully'
+    return 'Server .npz files flushed. Both IN and OUT'
 
 
 @app.route('/test_server', methods=['GET'])

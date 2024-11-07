@@ -1,7 +1,7 @@
 # LeFusion 3D Slicer Plugin
 
 ## Overview
-This repository contains a plugin for 3D slicer that integrates the LeFusion model for 3D lung nodule inpainting in chest CT.
+This repository contains a plugin for 3D slicer that integrates the [LeFusion](https://github.com/M3DV/LeFusion/tree/main) model for 3D lung nodule inpainting in chest CT.
 
 ## Installation
 - Create a virtual environment conda create -n lefusion python=3.10 and activate it conda activate lefusion
@@ -9,11 +9,28 @@ This repository contains a plugin for 3D slicer that integrates the LeFusion mod
 - Check if your pip version is 22.3.1. If it is not, install pip version 22.3.1 pip install pip==22.3.1
 - Enter the LeFusion folder cd lefusion-slicer/server and run pip install -r requirements.txt
 
-## Usage
-Set model running on remote instance (Google cloud vertex is preferable!), install plugin on local 3D slicer, add data to local slicer and inpaint images.
+```bash
+conda create -n lefusion python=3.10 && \
+conda activate lefusion && \
+pip install pip==22.3.1 && \
+cd lefusion-slicer/server && \
+pip install -r requirements.txt
+```
 
-## Contributing
-Contributions are welcome! Please read the `CONTRIBUTING.md` for guidelines on how to contribute to this project.
+- Download the pre-trained LeFusion Model ([HuggingFace🤗](https://huggingface.co/YuheLiuu/LeFusion/tree/main/LIDC_LeFusion_Model))
+
+   The LeFusion authors pre-trained LeFusion Model, which has been trained for 50,001 steps on the LIDC-IDRI dataset. This pre-trained model can be directly used for Inference if you do not want to re-train the LeFusion Model. Simply download it to `server/LeFusion_LIDC/LeFusion_model`.
+
+   ```bash
+   # Assuming cd is lefusion-slicer/server
+   cd LeFusion_LIDC
+   mkdir LeFusion_model
+   cd LeFusion_model
+   wget https://huggingface.co/YuheLiuu/LeFusion/resolve/main/LIDC_LeFusion_Model/model-50.pt -O model-50.pt
+   ```
+
+## Usage
+Set model running on remote instance (or local machine if GPU is available), install plugin on local 3D slicer, add data to local slicer and inpaint images.
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for more details.
