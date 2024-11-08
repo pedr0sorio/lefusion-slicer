@@ -9,7 +9,8 @@ This repository contains a plugin for 3D slicer that integrates the [LeFusion](h
 
 It is composed of the code related to the slicer extension + the code related to the backend server where the inpainiting computations are done.
 
-**NOTE**: *You can have both the server and slicer running on the same local machine if you have a GPU connected to it. Otherwise, you can have the server running on a remote machine attached to a GPU and access it via port forwarding.*
+> [!NOTE]  
+> You can have both the server and slicer running on the same local machine if you have a GPU connected to it. Otherwise, you can have the server running on a remote machine attached to a GPU and access it via port forwarding.
 
 <kbd>
 <img src="media/results-lfs.png">
@@ -66,7 +67,21 @@ This runs the server on the public interface of your device on port 8888.
 
 ### 2. Basic plugin usage
 
-See gif:
+The notes present in the UI should explain the inpainting process. For visual support refer to the .gif below.
+
+The Jump Length and Jump Number parameters control how many RePaint inference steps will be used to generate the lesions in the batch. Following the author's notes and also accoridng to my experience using a value of 2 for both parameters offers the best compromise between lesion quality and compute time. 
+
+On a A100 for default inference parameters:
+
+| Lesions in Batch | (1,1) | (2,2)    |
+|------------------|-------|----------|
+| 1                | 30s   | 1min     |
+| 2                | 50s   | 1min 30s |
+| 4                | -     | 2min 52s |
+
+> [!NOTE]  
+> I have been using a 40GB A100, which allows be to generate multiple lesions at once. Please adjust the batch size accoridng to you GPU. 
+
 
 <kbd>
 <img src="media/under30-2.gif">
