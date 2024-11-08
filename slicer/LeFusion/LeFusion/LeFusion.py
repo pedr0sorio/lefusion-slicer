@@ -21,7 +21,8 @@ import tempfile
 import threading
 import requests
 import time
-import datetime
+from datetime import datetime
+
 from copy import deepcopy
 
 try:
@@ -44,9 +45,12 @@ SERVER_DATA_DIR = Path("data")
 SERVER_IN_DATA_DIR = SERVER_DATA_DIR / "in"
 SERVER_OUT_DATA_DIR = SERVER_DATA_DIR / "out"
 
+
 #
 # Utils
 #
+def getLastIntFromStr(strr):
+    return [int(s) for s in strr.split() if s.isdigit()][-1]
 
 
 def arrayFromVTKMatrix(
@@ -92,8 +96,8 @@ class LeFusion(ScriptedLoadableModule):
             []
         )  # TODO: add here list of module names that this module requires
         self.parent.contributors = [
-            "Pedro Osorio (Bayer AG)",
-        ]  # TODO: replace with "Firstname Lastname (Organization)"
+            "Pedro Osório (Bayer AG)",
+        ]
         # TODO: update with short description of the module and a link to online module documentation
         # _() function marks text as translatable to other languages
         self.parent.helpText = _(
@@ -159,6 +163,14 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """Called when the user opens the module the first time and the widget is initialized."""
         ScriptedLoadableModuleWidget.setup(self)
 
+        # Clear the python console
+        slicer.app.pythonConsole().clear()
+
+        # Info print
+        print("LeFusion 3D Slicer Extension")
+        print("GitHub: https://github.com/pedr0sorio/lefusion-slicer")
+        print("Created by pedr0sorio")
+
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
         uiWidget = slicer.util.loadUI(self.resourcePath("UI/LeFusion.ui"))
@@ -204,7 +216,16 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.processButton.connect("clicked(bool)", self.logic.processScan)
 
         # Define Hyperparameters for model inference
-        self.ui.histType.addItems(["type 1", "type 2", "type 3"])
+        self.histogram_type_per_ROI = []
+        self.no_selection_option = " --> Select histogram for next ROI <-- "
+        self.ui.histType.addItems(
+            [
+                self.no_selection_option,
+                "type 1",
+                "type 2",
+                "type 3",
+            ]
+        )
         self.ui.pathModel.connect(
             "currentPathChanged(const QString&)",
             lambda: setattr(self.logic, "newModelUploaded", False),
@@ -302,8 +323,13 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             https://github.com/bingogome/samm/blob/7da10edd7efe44d10369aa13eddead75a7d3a38a/samm/SammBase/SammBaseLib/WidgetSammBase.py
 
         """
+        # Check if histogram type was selected:
+        if self.ui.histType.currentText == self.no_selection_option:
+            raise ValueError("Please select an histogram type before selecting the ROI")
+
         # Add new node to the scene
-        planeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsROINode").GetID()
+        roinode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsROINode")
+        planeNode = roinode.GetID()
         # ROI node is now the target for placement operations.
         selectionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSelectionNodeSingleton")
         selectionNode.SetReferenceActivePlaceNodeID(planeNode)
@@ -320,6 +346,16 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         slicer.mrmlScene.GetNodeByID(
             planeNode
         ).GetDisplayNode().SetInteractionHandleScale(1)
+
+        # Save selection
+        self.histogram_type_per_ROI.append(self.ui.histType.currentText)
+        print(
+            f"[drawBBox]\n {roinode.GetName()} will lead to "  # TODO replace by roi name
+            f"lesion with histogram {self.ui.histType.currentText}"
+        )
+        # Reset selection
+        self.ui.histType.setCurrentText(self.no_selection_option)
+        print(f"  -> {self.histogram_type_per_ROI = }")
 
     def processBBox(self, size=FIXED_CROP_SIZE_IJK, use_resized=True):
         """
@@ -345,12 +381,6 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         roiNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
         for roiNode in roiNodes:
             roiNode.SetSize(size_ras)
-
-    def lockBBox(self):
-        roiNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
-        for roiNode in roiNodes:
-            # do not let the user resize the box
-            roiNode.GetDisplayNode().SetHandlesInteractive(False)
 
 
 #
@@ -390,11 +420,18 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         """Called when the logic class is instantiated. Can be used for initializing member variables."""
         ScriptedLoadableModuleLogic.__init__(self)
 
-        # Clear the python console
-        slicer.app.pythonConsole().clear()
+        # Cleaning scene of resized volumes from scene to avoid memory build up
+        for node in slicer.util.getNodesByClass("vtkMRMLScalarVolumeNode"):
+            if "ResizedVolumeSlicer" in node.GetName():
+                slicer.mrmlScene.RemoveNode(node)
 
-        # Print the module name
-        print("LeFusionLogic - pedr0sorio")
+        # Cleaning ROIs from scene
+        for node in slicer.util.getNodesByClass("vtkMRMLMarkupsROINode"):
+            slicer.mrmlScene.RemoveNode(node)
+
+        # Cleaning segmentations from scene
+        for node in slicer.util.getNodesByClass("vtkMRMLSegmentationNode"):
+            slicer.mrmlScene.RemoveNode(node)
 
     def getParameterNode(self):
         return LeFusionParameterNode(super().getParameterNode())
@@ -402,10 +439,12 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
     def captureImage(self, resized=False):
         """Gets the self.logic.image_data and self.logic.volume_node attributes either
         from resized or original resolution volume."""
-        print("Updating image data and volume node self.logic variables.")
+        print(
+            "[Capture Volume] \n  -> Updating image data and volume node self.logic variables."
+        )
         if not resized:
             # Load first volume node in the scene
-            print("  from original volume")
+            print("  -> from original volume")
             self.volume_node = slicer.util.getNodesByClass("vtkMRMLScalarVolumeNode")[0]
             if (
                 self.volume_node.GetNodeTagName() == "LabelMapVolume"
@@ -434,12 +473,12 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
                     "Resized volume not found. Please Resize the "
                     "volume before procedding."
                 )
-            print("  from resized volume")
+            print("  -> from resized volume")
             self.image_data = slicer.util.arrayFromVolume(self.ResizedVolumeNode)
 
         # NOTE that numpy array index order is kji (not ijk)
 
-        print("     updated image data shape is: ", self.image_data.shape)
+        print("  -> updated image data shape is: ", self.image_data.shape)
 
     def FromRASToIJK(self, ras_point, volume_node=None, return_matrix=False) -> dict:
         """
@@ -542,7 +581,7 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
 
             # For each MarkUpROI node, get the bounding box in RAS coordinates and convert them to IJK
             bounds = self.getRASBoundFromMarkupsROINode(roiNode=roiNode)
-            print("RAS bounds are: ", bounds)
+            print("[Get bbox]\n  -> RAS bounds are: ", bounds)
 
             # Get the most largest diagonal vertices and compute their IJK coordinates
             # i.e. this will implicitly define the IJK coordinates of the bounding box
@@ -563,7 +602,7 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
                 centre,
                 volume_node=self.ResizedVolumeNode,
             )["point"]
-            print(f"{centre = } \n{centre_ijk =}")
+            print(f"  -> {centre = } \n  -> {centre_ijk =}")
 
             # Change order to ensure lower bound is first
             for j in range(len(point1_ijk)):
@@ -574,7 +613,7 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
             bounds_ijk = [
                 coord for pair in zip(point1_ijk, point2_ijk) for coord in pair
             ]
-            print("IJK bounds are: ", bounds_ijk)
+            print("  -> IJK bounds are: ", bounds_ijk)
             # Get the bounding box in IKJ coordinates for direct indexing of the numpy array
             # # NOTE that numpy array index order is kji (not ijk)
             bounds_kji_numpy = bounds_ijk.copy()
@@ -583,16 +622,6 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
             # Save
             bboxes_ijk.append(bounds_ijk)
             bboxes_kji_numpy.append(bounds_kji_numpy)
-
-            print(
-                "Testing bounding box on numpy image with "
-                f"shape: \n Before crop: {self.image_data.shape} \n After crop: ",
-                self.image_data[
-                    bounds_kji_numpy[0] : bounds_kji_numpy[1],
-                    bounds_kji_numpy[2] : bounds_kji_numpy[3],
-                    bounds_kji_numpy[4] : bounds_kji_numpy[5],
-                ].shape,
-            )
 
         return {
             "bboxes_ras": bounds,
@@ -616,8 +645,14 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         )
         paral_thread.start()
         while not job_event.is_set():
+            time.sleep(1)  # needed for prints to show properly # TODO remove
             slicer.app.processEvents()
         paral_thread.join()
+
+        now = datetime.now()
+        print(
+            f"Out of the bkg process in fucn {job_event.is_set() = }! {now.strftime('%Y-%m-%d %H:%M:%S')} {now.microsecond // 1000:03d}"
+        )
 
         self.progressbar.close()
 
@@ -639,23 +674,31 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
 
         # 2. Run inference script on server. Single Post Call.
         # NOTE Using the various uploaded crops as batch dimension
-        self.progressbar.setLabelText(" Inpainting crops ... ")
+        self.progressbar.setLabelText(" Inpainting crops (~1min) ... ")
         run_script_url = "http://%s:%s/run_script" % (ip, port)
 
         in_data_dict = {
             "input": [os.path.basename(img_path) for img_path in img_path_list],
+            # NOTE Add here ** BATCH WISE HPs ** for the inpainting model
+            "jump_length": self.widget.ui.spinBox.value,
+            "jump_n_sample": self.widget.ui.spinBox_2.value,
+            "batch_size": self.widget.ui.spinBox_3.value,
             # "debug": True,
         }
-        print(f"data sent is: {in_data_dict}")
+        print(f"  -> data sent is: {in_data_dict}")
         response = requests.post(
             run_script_url,
             data=in_data_dict,
         )
+        if response.text.startswith("Error:"):
+            # Finish bckg job
+            job_event.set()
+            raise Exception(f"[SERVER SIDE ERROR]: \n   -> {response.text}")
 
         # 3. Downloading results saved on server file system. Download / save generated
         # crop one by one.
         self.progressbar.setLabelText(" Downloading results ... ")
-
+        print(f"  -> Downloading results ...")
         for img_path, result_path in zip(img_path_list, result_path_list):
             download_file_url = "http://%s:%s/download_file" % (ip, port)
             out_data_dict = {
@@ -670,21 +713,36 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
             # Save response to result_path in local which is a temporary file
             with open(result_path, "wb") as f:
                 f.write(response.content)
-            print(f"Results downloaded to local slicer temp file: {result_path}")
+            print(f"  -> Results downloaded to local slicer temp file: {result_path}")
 
+        # 4. Flushing all .npz files from the server to avoid memory build up.
+        self.progressbar.setLabelText(" Flushing server memory ... ")
+        download_file_url = "http://%s:%s/flush_memory" % (ip, port)
+        response = requests.get(download_file_url)
+
+        # Finish bckg job
         job_event.set()
 
     def inpaint(self):
+        # Start counter
+        start_time = time.time()
+
         # Get the whole volume
         self.captureImage(resized=True)
 
         # Get the bounding box for each ROI
         bboxes_dict = self.get_bounding_box()
         n_crops = len(bboxes_dict["bboxes_kji_numpy"])
-        print(f"Running Inpainting for {n_crops} crops ...   \n...")
+        print(f"[Inpainting]\n  -> Running Inpainting for {n_crops} crops ...")
 
-        # NOTE First release will use the same preset LESION MASK for every inpainting task. Once DiffMask is
-        # avaialble, the mask will be infered from the bounding box.
+        # Get histogram int types
+        histogram_types = [
+            getLastIntFromStr(type_) for type_ in self.widget.histogram_type_per_ROI
+        ]
+        print(f"  -> {histogram_types = }")
+
+        # NOTE First release will use the same preset LESION MASK for every inpainting
+        # task. Once DiffMask is avaialble, the mask will be infered from the bounding box.
         with tempfile.TemporaryDirectory() as tmpdirname:
             # Save the multiple crops as temp files locally. Create also the temp files
             # for their corresponding inpainted versions.
@@ -700,20 +758,15 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
                 ]
 
                 # Get histogram int type
-                histogram_type = [
-                    int(s)
-                    for s in self.widget.ui.histType.currentText.split()
-                    if s.isdigit()
-                ][0]
+                print(f"  -> {histogram_types[bbox_idx] = }")
 
                 np.savez(
                     img_path,
                     data=crop,  # voxel array of crop
-                    histogram=histogram_type,  # histogram type
-                    # TODO eventually allow per crop histogram specification. Needs UI change.
-                    # NOTE We can add here other hps for the inpainting model
+                    # NOTE Add here ** PER LESION HPs ** for the inpainting model
+                    histogram=histogram_types[bbox_idx],  # per lesion histogram type
                     # ...
-                    boxes_numpy=bboxes_dict["bboxes_kji_numpy"],  # in numpy indexes
+                    boxes_numpy=bboxes_dict["bboxes_kji_numpy"][bbox_idx],  # in np idx
                     # boxes_ijk=bboxes_dict["bboxes_ijk"],  # in ikj indexes
                     # boxes_ras=bboxes_dict["bbox_ras"],  # in ras coordinates
                 )
@@ -731,37 +784,31 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
                 ),
                 "Inpainting...",
             )
-            # TODO from sever side:
-            # - Simple test function to see receiving format
-            # - Data loading fucntionality for:
-            #    - Extract crops from the volume based on bboxes
-            #    - Feed the crops as torch tensor for the inference pipeline
-            # - Save inpainted crop in server local file system
-            # - Send ONLY the inpainted crops back to the client
 
-            # TODO Get Response and create a new volume node with the inpainted lesion
+            now = datetime.now()
+            print(
+                f"Out of the bkg process! {now.strftime('%Y-%m-%d %H:%M:%S')} {now.microsecond // 1000:03d}"
+            )
+
             # Loading results: Expects the inpainted crop with lesion
             self.progressbar.setLabelText(" Incorporating the results in the scan ... ")
-            print(" Incorporating the results in the scan ... ")
+            print("  -> Incorporating the results in the scan ... ")
 
             for bbox_idx in range(n_crops):
+                print(f"  -> Scan {bbox_idx} ... ")
                 retrieved_response = np.load(
                     result_path_list[bbox_idx], allow_pickle=True
                 )
                 inpainted_crop_numpy = retrieved_response["data_inpainted"]
-                print(f"{inpainted_crop_numpy.shape = }")
-                mask = retrieved_response[
-                    "mask"
-                ]  # TODO unused for now later add to scene
                 retrieved_bbox = retrieved_response.get("boxes_numpy")
-                print(f"{np.shape(retrieved_bbox) = }")
-                print(f"{retrieved_bbox = }")
-                print(f"{bboxes_dict['bboxes_kji_numpy'][bbox_idx] = }")
+                print("     -> Loading bbox coords from server...")
                 if retrieved_bbox is None:
-                    print("Loading bbox coords from server...")
+                    print("     -> Not found, loading them from slicer ...")
                     retrieved_bbox = bboxes_dict["bboxes_kji_numpy"][bbox_idx]
                 else:
-                    retrieved_bbox = retrieved_bbox[0].squeeze()
+                    retrieved_bbox = retrieved_bbox
+                print(f"     -> {result_path_list[bbox_idx] = }")
+                print(f"     -> {retrieved_bbox = }")
 
                 # Iteratively replace the multiple inpainted crops in the volume
                 self.addInpaintedCrop(
@@ -770,10 +817,29 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
                     volume_node=self.ResizedVolumeNode,
                 )
 
+                # Add
+                mask = retrieved_response["mask"]
+                self.showSegmentation(
+                    segmentation_mask=mask,
+                    volume_node=self.ResizedVolumeNode,
+                    bbox=retrieved_bbox,
+                    lesion_index=bbox_idx,
+                )
+
         # Remove selected ROIs
         roiNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
         for roiNode in roiNodes:
             slicer.mrmlScene.RemoveNode(roiNode)
+
+        # Clear per ROI hist type list
+        self.histogram_type_per_ROI = []
+
+        # Print duration
+        mins, secs = divmod(time.time() - start_time, 60)
+        print(
+            f" > > > > > > > > >    Inpainting {n_crops} lesions "
+            f"took {int(mins)} min {int(secs)} sec   < < < < < < < < < < "
+        )
 
     def addInpaintedCrop(
         self,
@@ -785,13 +851,6 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         # self.captureImage(resized=True) -> Not needed because it is already loaded
         # Edit the volume data i.e. self.image_data
         inpainted_volume = deepcopy(self.image_data)
-        print("inpainted_volume shape: ", inpainted_volume.shape)
-
-        print("inpainted_crop_numpy shape: ", crop_numpy.shape)
-        print(f"{bbox = }")
-        print(
-            f"{inpainted_volume[bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]].shape = }"
-        )
         inpainted_volume[bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]] = (
             crop_numpy
         )
@@ -799,14 +858,57 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         # Update resized volume node with the inpainted volume
         self.updateImage(inpainted_volume, volume_node)
 
+    def showSegmentation(self, segmentation_mask, bbox, volume_node, lesion_index):
+
+        if self.allSegmentsNode is None:
+            self.allSegmentsNode = slicer.mrmlScene.AddNewNodeByClass(
+                "vtkMRMLSegmentationNode"
+            )
+        self.allSegmentsNode.SetReferenceImageGeometryParameterFromVolumeNode(
+            volume_node
+        )
+        # TODO Needs testing on multi
+        # Get all labels except background(0) : [0, 1, 2, ...] -> [1, 2, ...]
+        labels = np.unique(segmentation_mask)[1:]
+        for idx, label in enumerate(labels, start=1):
+            # Init empty mask volume
+            curr_object_whole = np.zeros_like(self.image_data)
+            # Init empty crop mask
+            curr_object = np.zeros_like(segmentation_mask)
+            # Add mask for specific label
+            curr_object[segmentation_mask == idx] = idx
+
+            # Fill in whole crop mask
+            curr_object_whole[
+                bbox[0] : bbox[1], bbox[2] : bbox[3], bbox[4] : bbox[5]
+            ] = curr_object
+
+            # Create crop label map
+            segment_volume = slicer.mrmlScene.AddNewNodeByClass(
+                "vtkMRMLLabelMapVolumeNode",
+                f"lesion{lesion_index}_tissueclass{idx}_{int(time.time())}",
+            )
+            slicer.util.updateVolumeFromArray(segment_volume, curr_object_whole)
+
+            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(
+                segment_volume, self.allSegmentsNode
+            )
+            slicer.util.updateSegmentBinaryLabelmapFromArray(
+                curr_object_whole,
+                self.allSegmentsNode,
+                segment_volume.GetName(),
+                volume_node,
+            )
+            slicer.mrmlScene.RemoveNode(segment_volume)
+
     def resize_CT_slicer(self):
         """
         Use Slicer's resample scalar volume module to resize the volume to a fixed
         resolution. Creates a new volume node with the resized volume.
         """
         print(
-            "[Volume Resizing] "
-            "Resizing volume to fixed (2x1x1) mm expected by the inpainuting model."
+            f"[Volume Resizing]\n  -> Resizing volume to fixed {FIXED_RESOLUTION} mm "
+            "expected by the inpainuting model."
         )
         self.captureImage()
         volumesLogic = slicer.modules.volumes.logic()
@@ -835,7 +937,7 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         self.captureImage(resized=True)
 
     def processScan(self):
-        print("[Volume Processing] Clipping with torchio.")
+        print("[Volume Processing]\n  -> Clipping with torchio.")
         self.captureImage(resized=True)
         processed_volume = deepcopy(self.image_data)
 
