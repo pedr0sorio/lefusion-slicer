@@ -1,0 +1,25 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'CT Lung Nodule Inpainting: A LeFusion 3DSlicer Extension'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Pedro
+    family-names: Osorio
+    email: pedro.c.osorio@gmail.com
+    orcid: 'https://orcid.org/0009-0006-8848-0214'
+repository-code: 'https://github.com/pedr0sorio/lefusion-slicer'
+abstract: >-
+  This repository contains a plugin for 3D slicer that
+  integrates the LeFusion model for 3D lung nodule
+  inpainting in chest CT.
+keywords:
+  - lung nodules
+  - ct
+  - Inpainiting
+  - 3D
+license: MIT
