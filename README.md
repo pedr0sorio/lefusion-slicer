@@ -1,7 +1,7 @@
 # LeFusion 3D Slicer Plugin
 
 <kbd>
-<img src="media/demo.gif">
+<img src="media/under30-2.gif">
 </kbd>
 
 ## Overview
