@@ -193,7 +193,7 @@ def main(conf: DictConfig):
                 conf.target_img_path / gt_name,
                 data_inpainted=pp_result,
                 mask=label[b_idx],
-                histogram=hist,
+                histogram=hist[b_idx],
                 boxes_numpy=bbox_kji_
             )
 

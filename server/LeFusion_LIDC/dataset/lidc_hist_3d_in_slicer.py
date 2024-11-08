@@ -5,6 +5,7 @@ import glob
 import numpy as np
 
 import pathlib
+import random
 
 from paths import SERVER_ASSET_DATA_DIR
 
@@ -43,7 +44,9 @@ class LIDC3D_HIST_InSlicerDataset(Dataset):
 
         # Whether to infer mask with DiffMask
         self.use_diffmask = use_diffmask # TODO Add when weight become available
-        self.template_mask_path = SERVER_ASSET_DATA_DIR / "LIDC-IDRI-0032_CMask_21.nii.gz"
+        self.template_mask_paths = glob.glob(
+            os.path.join(SERVER_ASSET_DATA_DIR, '**/*.nii.gz'), recursive=True
+        )
 
     def load_npz_data(self, path):
         """Load .npz sample scan file with bbox"""
@@ -69,8 +72,10 @@ class LIDC3D_HIST_InSlicerDataset(Dataset):
             # TODO Implement DiffMask (await LeFusion guys otherwise train our own)
             NotImplementedError("DiffMask not implemented yet")
         else:
-            # Load a fixed mask for testing
-            mask = tio.LabelMap(self.template_mask_path) 
+            # Select random mask from assets
+            mask_path = random.choice(self.template_mask_paths)
+            # Load a random mask from assets for testing
+            mask = tio.LabelMap(mask_path) 
 
         crop_scan = self.preprocessing_img(crop_scan)
         mask = self.preprocessing_mask(mask)
