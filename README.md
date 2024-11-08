@@ -84,7 +84,7 @@ On a A100 for default inference parameters the total processing time is approxim
 | 4                | -     | 2min 52s |
 
 > [!NOTE]  
-> I have been using a 40GB A100, which allows be to generate multiple lesions at once. Please adjust the batch size accoridng to you GPU. 
+> I have been using a 40GB A100, which allows be to generate multiple lesions at once. Please adjust the batch size accoridng to you GPU. It is possible to run the server on a T4 GPU but batches would have to be reduced to a single lesion and teh total processing time soars up to 3min 30s / lesion. 
 
 ## Contact
 For any questions or issues, please open an issue on this repository or contact me at [pedro.c.osorio@gmail.com].
