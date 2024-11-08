@@ -71,7 +71,7 @@ The notes present in the UI should explain the inpainting process. For visual su
 
 The Jump Length and Jump Number parameters control how many RePaint inference steps will be used to generate the lesions in the batch. Following the author's notes and also accoridng to my experience using a value of 2 for both parameters offers the best compromise between lesion quality and compute time. 
 
-On a A100 for default inference parameters:
+On a A100 for default inference parameters the total processing time is approximately:
 
 | Lesions in Batch | (1,1) | (2,2)    |
 |------------------|-------|----------|
