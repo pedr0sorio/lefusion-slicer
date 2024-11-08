@@ -10,3 +10,5 @@ server/LeFusion_LIDC/*.ipynb
 .ipynb_checkpoints
 
 server/outputs
+
+dev
