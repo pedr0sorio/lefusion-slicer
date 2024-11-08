@@ -1,7 +1,7 @@
 # LeFusion 3D Slicer Plugin
 
 <kbd>
-<img src="media/under30-2.gif">
+<img src="media/ui.png">
 </kbd>
 
 ## Overview
@@ -11,7 +11,9 @@ It is composed of the code related to the slicer extension + the code related to
 
 **NOTE**: *You can have both the server and slicer running on the same local machine if you have a GPU connected to it. Otherwise, you can have the server running on a remote machine attached to a GPU and access it via port forwarding.*
 
-
+<kbd>
+<img src="media/results-lfs.png">
+</kbd>
 
 ## Installation
 
@@ -63,6 +65,12 @@ python server/server.py
 This runs the server on the public interface of your device on port 8888.
 
 ### 2. Basic plugin usage
+
+See gif:
+
+<kbd>
+<img src="media/under30-2.gif">
+</kbd>
 
 
 ## License
