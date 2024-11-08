@@ -1,5 +1,9 @@
 # LeFusion 3D Slicer Plugin
 
+<kbd>
+<img src="media/demo.gif">
+</kbd>
+
 ## Overview
 This repository contains a plugin for 3D slicer that integrates the [LeFusion](https://github.com/M3DV/LeFusion/tree/main) model for 3D lung nodule inpainting in chest CT.
 
@@ -78,6 +82,8 @@ This repo is based on some code from [MedSAMSlicer](https://github.com/bowang-la
 ✅ **Sending and retrieving the volumes from the server** 
 
 ✅ **Server side, processing, inference and return to client** 
+
+🔲 **Add DiffMask to infer mask from crop** 
 
 🔲 **Setting server running on Vertex AI inference endpoint**
 
