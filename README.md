@@ -67,9 +67,13 @@ This runs the server on the public interface of your device on port 8888.
 
 ### 2. Basic plugin usage
 
-The notes present in the UI should explain the inpainting process. For visual support refer to the .gif below.
+<kbd>
+<img src="media/under30-2.gif">
+</kbd>
 
-The Jump Length and Jump Number parameters control how many RePaint inference steps will be used to generate the lesions in the batch. Following the author's notes and also accoridng to my experience using a value of 2 for both parameters offers the best compromise between lesion quality and compute time. 
+The notes present in the UI should explain how to use the inpainting tool. For visual support refer to the .gif above.
+
+The Jump Length and Jump Number parameters control how many RePaint inference steps will be used to generate the lesions in the batch. Following the author's notes and also according to my experience using a value of 2 for both parameters offers the best compromise between lesion quality and compute time. 
 
 On a A100 for default inference parameters the total processing time is approximately:
 
@@ -81,15 +85,6 @@ On a A100 for default inference parameters the total processing time is approxim
 
 > [!NOTE]  
 > I have been using a 40GB A100, which allows be to generate multiple lesions at once. Please adjust the batch size accoridng to you GPU. 
-
-
-<kbd>
-<img src="media/under30-2.gif">
-</kbd>
-
-
-## License
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
 
 ## Contact
 For any questions or issues, please open an issue on this repository or contact me at [pedro.c.osorio@gmail.com].
