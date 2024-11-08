@@ -87,14 +87,13 @@ On a A100 for default inference parameters the total processing time is approxim
 > I have been using a 40GB A100, which allows be to generate multiple lesions at once. Please adjust the batch size accoridng to you GPU. It is possible to run the server on a T4 GPU but batches would have to be reduced to a single lesion and teh total processing time soars up to 3min 30s / lesion. 
 
 > [!NOTE]  
-> As of now due to the lack of the DiffMask (see LeFusion paper) weights and code, t
+> As of now due to the lack of the DiffMask (see LeFusion paper) weights and code, the lesion mask for the selected crop will not be inferred but chosen randomly from a set of LIDC-IDRI masks already extracted by the original authors. They are saved under `server/in/mask-asset`.
 
 ## Contact
 For any questions or issues, please open an issue on this repository or contact me at [pedro.c.osorio@gmail.com].
 
 ## Citation
-If you are using this in your work, please cite both THIS REPO as defined and the original [LeFusion](https://github.com/M3DV/LeFusion/tree/main) paper.
-
+If you are using this in your work, please cite both THIS REPO as defined in citation.cff and the original [LeFusion](https://github.com/M3DV/LeFusion/tree/main) paper.
 
 ## Acknowledgement
 
