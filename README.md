@@ -59,8 +59,8 @@ pip install -r requirements.txt
 You have to run the inpainting server to accept the incoming inpainting requests from slicer. You can do it both locally or on a remote computer:
 
 ```bash
-# from repo root
-python server/server.py
+# from lefusion-slicer/server
+python server.py
 ```
 
 This runs the server on the public interface of your device on port 8888.
@@ -81,6 +81,7 @@ On a A100 for default inference parameters the total processing time is approxim
 |------------------|-------|----------|
 | 1                | 30s   | 1min     |
 | 2                | 50s   | 1min 30s |
+| 3                | -     | 2min 16s |
 | 4                | -     | 2min 52s |
 
 > [!NOTE]  
