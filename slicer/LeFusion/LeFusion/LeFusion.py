@@ -832,13 +832,19 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
             slicer.mrmlScene.RemoveNode(roiNode)
 
         # Clear per ROI hist type list
-        self.histogram_type_per_ROI = []
+        self.widget.histogram_type_per_ROI = []
 
         # Print duration
         mins, secs = divmod(time.time() - start_time, 60)
         print(
-            f" > > > > > > > > >    Inpainting {n_crops} lesions "
-            f"took {int(mins)} min {int(secs)} sec   < < < < < < < < < < "
+            " :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: "
+        )
+        print(
+            f" > > > > > >    Inpainting {n_crops} lesions "
+            f"took {int(mins)} min {int(secs)} sec   < < < < < < < "
+        )
+        print(
+            " :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: "
         )
 
     def addInpaintedCrop(
