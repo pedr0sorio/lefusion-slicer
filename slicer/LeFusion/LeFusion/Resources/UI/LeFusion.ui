@@ -79,7 +79,7 @@
       <item row="3" column="0">
        <widget class="QPushButton" name="btnROI">
         <property name="text">
-         <string>Add Bounding Box</string>
+         <string> 2. Select new Lesion Centroid </string>
         </property>
        </widget>
       </item>
@@ -96,7 +96,7 @@
       <item row="3" column="1">
        <widget class="QPushButton" name="ProcessROIpushButton">
         <property name="text">
-         <string>Process Selections </string>
+         <string> 3. Process Selections </string>
         </property>
        </widget>
       </item>
@@ -113,7 +113,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>1. Select a texture type for your lesion.</string>
+         <string>1. Select a intensity profile for your lesion.</string>
         </property>
        </widget>
       </item>

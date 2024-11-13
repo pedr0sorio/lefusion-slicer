@@ -8,7 +8,6 @@ set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extens
 set(EXTENSION_CATEGORY "CT processing")
 set(EXTENSION_CONTRIBUTORS "Pedro Osorio (Bayer)")
 set(EXTENSION_DESCRIPTION "This is an extension for inpainting CT volumes with nodules.")
-set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/LeFusion.png")
 set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/LeFusion/Screenshots/1.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 

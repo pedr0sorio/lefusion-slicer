@@ -196,11 +196,11 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
         self.ui.ResizeButton.setIcon(QIcon(os.path.join(iconsPath, "verify.png")))
         self.ui.ProcessROIpushButton.setIcon(
-            QIcon(os.path.join(iconsPath, "verify.png"))
+            QIcon(os.path.join(iconsPath, "bounding-box.png"))
         )
-        self.ui.btnROI.setIcon(QIcon(os.path.join(iconsPath, "bounding-box.png")))
+        self.ui.btnROI.setIcon(QIcon(os.path.join(iconsPath, "target.png")))
         self.ui.InpaintPushButton.setIcon(
-            QIcon(os.path.join(iconsPath, "body-scan.png"))
+            QIcon(os.path.join(iconsPath, "LeFusion.png"))
         )
         # These connections ensure that we update parameter node when scene is closed
         self.addObserver(
@@ -217,13 +217,13 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Define Hyperparameters for model inference
         self.histogram_type_per_ROI = []
-        self.no_selection_option = " --> Select histogram for next ROI <-- "
+        self.no_selection_option = "                   1. Select Intensity Profile"
         self.ui.histType.addItems(
             [
                 self.no_selection_option,
-                "type 1",
-                "type 2",
-                "type 3",
+                "Type 1",
+                "Type 2",
+                "Type 3",
             ]
         )
         self.ui.pathModel.connect(
