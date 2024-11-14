@@ -215,6 +215,19 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.ResizeButton.connect("clicked(bool)", self.logic.resize_CT_slicer)
         self.ui.processButton.connect("clicked(bool)", self.logic.processScan)
 
+        # Windowing:
+        self.ui.comboBoxWindow.addItems(
+            [
+                "DICOM default",
+                "Lung (W:1500 L:-600)",
+                "Mediastinal (W:350 L:50)",
+                "Bone (W:1000 L:400)",
+            ]
+        )
+        self.ui.pushButtonWindow.connect(
+            "clicked(bool)", self.logic.setPreferredScalarVolumeWindowLevel
+        )
+
         # Define Hyperparameters for model inference
         self.histogram_type_per_ROI = []
         self.no_selection_option = "                   1. Select Intensity Profile"
@@ -466,6 +479,8 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
             self.image_data = slicer.util.arrayFromVolume(
                 self.volume_node
             )  ################ Only one node?
+            self.window_dicom = self.volume_node.GetDisplayNode().GetWindow()
+            self.level_dicom = self.volume_node.GetDisplayNode().GetLevel()
         else:
             # If the volume has been resized, use the resized volume
             if self.ResizedVolumeNode is None:
@@ -475,6 +490,8 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
                 )
             print("  -> from resized volume")
             self.image_data = slicer.util.arrayFromVolume(self.ResizedVolumeNode)
+            self.window = self.volume_node.GetDisplayNode().GetWindow()
+            self.level = self.volume_node.GetDisplayNode().GetLevel()
 
         # NOTE that numpy array index order is kji (not ijk)
 
@@ -941,6 +958,28 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         # success
         slicer.mrmlScene.RemoveNode(cliNode)
         self.captureImage(resized=True)
+
+    def setPreferredScalarVolumeWindowLevel(self):
+        print("[Setting Window]")
+        self.captureImage(resized=True)
+        # https://www.slicer.org/wiki/Documentation/Nightly/ScriptRepository
+        displayNode = self.ResizedVolumeNode.GetDisplayNode()
+        displayNode.AutoWindowLevelOff()
+
+        selected_window_name = self.widget.ui.comboBoxWindow.currentText.lower()
+        if "lung" in selected_window_name:
+            window, level = 1500, -600
+        elif "bone" in selected_window_name:
+            window, level = 1000, 400
+        elif "mediastinal" in selected_window_name:
+            window, level = 350, 50
+        elif "dicom" in selected_window_name:
+            window, level = self.window_dicom, self.level_dicom
+        else:
+            raise NotImplementedError("Unrecognised window name.")
+
+        displayNode.SetWindow(window)
+        displayNode.SetLevel(level)
 
     def processScan(self):
         print("[Volume Processing]\n  -> Clipping with torchio.")

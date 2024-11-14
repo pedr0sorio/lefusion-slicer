@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MedicalSAM2</class>
- <widget class="qMRMLWidget" name="MedicalSAM2">
+ <class>LeFusion</class>
+ <widget class="qMRMLWidget" name="LeFusion">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>535</width>
+    <width>617</width>
     <height>697</height>
    </rect>
   </property>
@@ -46,13 +46,6 @@
       <string>Preprocessing</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="1" column="1">
-       <widget class="QPushButton" name="processButton">
-        <property name="text">
-         <string> 2. Clip Voxel Intensity</string>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="0">
        <widget class="QPushButton" name="ResizeButton">
         <property name="text">
@@ -60,10 +53,52 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="1">
+       <widget class="QPushButton" name="processButton">
+        <property name="text">
+         <string> 2. Clip Voxel Intensity</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0" colspan="2">
        <widget class="QLabel" name="label_6">
         <property name="text">
          <string>Apply LeFusion expected preprocessing to preloaded CT lung scan:</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CollapsibleButtonWindow">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>78</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Windowing</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_1">
+      <item row="0" column="1">
+       <widget class="QComboBox" name="comboBoxWindow"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_12">
+        <property name="text">
+         <string>Window</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QPushButton" name="pushButtonWindow">
+        <property name="text">
+         <string>Apply</string>
         </property>
        </widget>
       </item>
