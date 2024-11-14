@@ -963,6 +963,7 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         print("[Setting Window]")
         self.captureImage(resized=True)
         # https://www.slicer.org/wiki/Documentation/Nightly/ScriptRepository
+        # https://radiopaedia.org/articles/windowing-ct
         displayNode = self.ResizedVolumeNode.GetDisplayNode()
         displayNode.AutoWindowLevelOff()
 
@@ -986,18 +987,8 @@ class LeFusionLogic(ScriptedLoadableModuleLogic):
         self.captureImage(resized=True)
         processed_volume = deepcopy(self.image_data)
 
-        # print("Before TIO")
-        # print(np.shape(processed_volume))
-        # print(np.max(processed_volume))
-        # print(np.min(processed_volume))
-
         # Use tio transforms to process the volume
         processed_volume = self.processing_tfs(processed_volume[None, ...])
-
-        # print("After TIO")
-        # print(np.shape(processed_volume))
-        # print(np.max(processed_volume))
-        # print(np.min(processed_volume))
 
         # Update resized volume node with the inpainted volume
         self.updateImage(processed_volume[0], volume_node=self.ResizedVolumeNode)
