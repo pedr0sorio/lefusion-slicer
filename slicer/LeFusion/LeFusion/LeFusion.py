@@ -230,7 +230,7 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Define Hyperparameters for model inference
         self.histogram_type_per_ROI = []
-        self.no_selection_option = "                   1. Select Intensity Profile"
+        self.no_selection_option = "                   Select Intensity Profile"
         self.ui.histType.addItems(
             [
                 self.no_selection_option,
@@ -239,9 +239,46 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "Type 3",
             ]
         )
-        self.ui.pathModel.connect(
-            "currentPathChanged(const QString&)",
-            lambda: setattr(self.logic, "newModelUploaded", False),
+        # from https://pylidc.github.io/_modules/pylidc/Annotation.html
+        self.ui.comboBoxMargin.addItems(
+            [
+                "                   [Not yet available]",
+                "Poorly Defined (1)",
+                "Near Poorly Defined (2)",
+                "Medium Margin (3)",
+                "Near Sharp (4)",
+                "Sharp (5)",
+            ]
+        )
+        self.ui.comboBoxTexture.addItems(
+            [
+                "                   [Not yet available]",
+                "Non-Solid/GGO (1)",
+                "Non-Solid/Mixed (2)",
+                "Part Solid/Mixed (3)",
+                "Solid/Mixed (4)",
+                "Solid (5)",
+            ]
+        )
+        self.ui.comboBoxSphericity.addItems(
+            [
+                "                   [Not available yet]",
+                "Linear (1)",
+                "Ovoid/Linear (1)",
+                "Ovoid (1)",
+                "Ovoid/Round (1)",
+                "Round (1)",
+            ]
+        )
+        self.ui.comboBoxMalignancy.addItems(
+            [
+                "                   [Not available yet]",
+                "Highly Unlikely (1)",
+                "Moderately Unlikely (1)",
+                "Indeterminate (1)",
+                "Moderately Suspicious (1)",
+                "Highly Suspicious (1)",
+            ]
         )
 
         # Buttons
