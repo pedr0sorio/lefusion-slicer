@@ -29,7 +29,7 @@ def run_script():
     if batch_size is None:
         batch_size = 1
 
-    inference_script_path = os.path.abspath('LeFusion_LIDC/test/inference.py')
+    inference_script_path = os.path.abspath('lefusion/test/inference.py')
     args = f"""
     python
     {inference_script_path}
