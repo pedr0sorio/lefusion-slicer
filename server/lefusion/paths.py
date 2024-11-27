@@ -5,7 +5,7 @@ from pathlib import Path
 HOME_FOLDER = Path().home()
 PROJECT_ROOT_PATH = Path(__file__).parent.parent.parent # lefusion-slicer
 
-PROJECT_LEFUSION_PATH = Path(__file__).parent # lefusion-slicer/server/LeFusion_LIDC
+PROJECT_LEFUSION_PATH = Path(__file__).parent # lefusion-slicer/server/lefusion
 # ... Server Paths
 PROJECT_SERVER_PATH = PROJECT_ROOT_PATH / "server" # lefusion-slicer/server
 SERVER_DATA_DIR = PROJECT_SERVER_PATH / "data"

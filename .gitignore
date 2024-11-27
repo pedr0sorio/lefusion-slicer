@@ -1,14 +1,16 @@
 *.npz
 server/data/in/*.nii.gz
 server/data/in/*.npz
-server/LeFusion_LIDC/outputs
+server/lefusion/outputs
 
-server/LeFusion_LIDC/LeFusion_model
-server/LeFusion_LIDC/outputs
-server/LeFusion_LIDC/*.ipynb
+server/lefusion/LeFusion_model
+server/lefusion/outputs
+server/lefusion/*.ipynb
 *.pyc
 .ipynb_checkpoints
 
 server/outputs
 
 dev
+
+external

@@ -36,11 +36,11 @@ pip install -r requirements.txt
 
 #### Download the pre-trained LeFusion Model ([HuggingFace🤗](https://huggingface.co/YuheLiuu/LeFusion/tree/main/LIDC_LeFusion_Model))
 
-   The LeFusion authors pre-trained LeFusion Model, which has been trained for 50,001 steps on the LIDC-IDRI dataset. This pre-trained model can be directly used for Inference. Simply download it to `server/LeFusion_LIDC/LeFusion_model`.
+   The LeFusion authors pre-trained LeFusion Model, which has been trained for 50,001 steps on the LIDC-IDRI dataset. This pre-trained model can be directly used for Inference. Simply download it to `server/lefusion/LeFusion_model`.
 
    ```bash
    # Assuming cd is lefusion-slicer/server
-   cd LeFusion_LIDC
+   cd lefusion
    mkdir LeFusion_model
    cd LeFusion_model
    wget https://huggingface.co/YuheLiuu/LeFusion/resolve/main/LIDC_LeFusion_Model/model-50.pt -O model-50.pt

@@ -7,7 +7,7 @@ import numpy as np
 import os
 import select
 
-from LeFusion_LIDC.paths import IN_SERVER_DATA_DIR, OUT_SERVER_DATA_DIR
+from lefusion.paths import IN_SERVER_DATA_DIR, OUT_SERVER_DATA_DIR
 os.makedirs(IN_SERVER_DATA_DIR, exist_ok=True)
 os.makedirs(OUT_SERVER_DATA_DIR, exist_ok=True)
 
