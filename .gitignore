@@ -14,3 +14,5 @@ server/outputs
 dev
 
 external
+
+*.lock
