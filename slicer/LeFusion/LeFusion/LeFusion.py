@@ -38,7 +38,8 @@ except:
 FIXED_CROP_SIZE_IJK = [64, 64, 32]  # voxel (IJK)
 FIXED_CROP_SIZE_KJI = [32, 64, 64]  # voxel (KJI)
 # FIXED_RESOLUTION = [1, 1, 2]  # mm (IJK)
-FIXED_RESOLUTION = [0.96, 0.96, 1.25]  # mm (IJK)
+# FIXED_RESOLUTION = [0.96, 0.96, 1.25]  # mm (IJK)
+FIXED_RESOLUTION = [1, 1, 1]  # mm (IJK)
 
 # Server Paths
 SERVER_DATA_DIR = Path("data")
@@ -264,20 +265,20 @@ class LeFusionWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             [
                 "                   [Not available yet]",
                 "Linear (1)",
-                "Ovoid/Linear (1)",
-                "Ovoid (1)",
-                "Ovoid/Round (1)",
-                "Round (1)",
+                "Ovoid/Linear (2)",
+                "Ovoid (3)",
+                "Ovoid/Round (4)",
+                "Round (5)",
             ]
         )
         self.ui.comboBoxMalignancy.addItems(
             [
                 "                   [Not available yet]",
                 "Highly Unlikely (1)",
-                "Moderately Unlikely (1)",
-                "Indeterminate (1)",
-                "Moderately Suspicious (1)",
-                "Highly Suspicious (1)",
+                "Moderately Unlikely (2)",
+                "Indeterminate (3)",
+                "Moderately Suspicious (4)",
+                "Highly Suspicious (5)",
             ]
         )
 
