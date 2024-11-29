@@ -2,6 +2,7 @@
 server/data/in/*.nii.gz
 server/data/in/*.npz
 server/lefusion/outputs
+server/train-data
 
 server/lefusion/LeFusion_model
 server/lefusion/outputs
