@@ -36,6 +36,7 @@ class LIDC3D_HIST_Dataset(Dataset):
         TRAIN_TRANSFORMS = tio.Compose([
             tio.RandomFlip(axes=(1), flip_probability=p),
         ])
+        # TODO same seed? Change to subject
         image = TRAIN_TRANSFORMS(image)
         label = TRAIN_TRANSFORMS(label)
         return image, label
