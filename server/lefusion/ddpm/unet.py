@@ -31,6 +31,8 @@ class DownBlock(nn.Module):
             spatial_dims, in_ch, out_ch, act_name=act_name, **kwargs)
 
     def forward(self, x, time_emb, cond_emb):
+        # NOTE here the UNet incorporates the condition and time embeddings via 
+        # processing with simple linear layer. NOT CROSS ATTENTION
         b, c, *_ = x.shape
         sp_dim = x.ndim-2
 

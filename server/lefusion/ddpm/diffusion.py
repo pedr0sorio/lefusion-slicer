@@ -402,11 +402,17 @@ class Unet3D(nn.Module):
     ):
         super().__init__()
         self.channels = channels
+        
+        # temporal attention and its relative positional encoding
         rotary_emb = RotaryEmbedding(min(32, attn_dim_head))
         def temporal_attn(dim): return EinopsToAndFrom('b c f h w', 'b (h w) f c', Attention(
             dim, heads=attn_heads, dim_head=attn_dim_head, rotary_emb=rotary_emb))
+        
+        # realistically will not be able to generate that many frames of video... yet
         self.time_rel_pos_bias = RelativePositionBias(
             heads=attn_heads, max_distance=32)
+        
+        # initial conv
         init_dim = default(init_dim, dim)
         assert is_odd(init_kernel_size)
         init_padding = init_kernel_size // 2
@@ -414,8 +420,12 @@ class Unet3D(nn.Module):
                                    init_kernel_size), padding=(0, init_padding, init_padding))
         self.init_temporal_attn = Residual(
             PreNorm(init_dim, temporal_attn(init_dim)))
+        
+        # dimensions
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
+        
+        # time conditioning
         time_dim = dim * 4
         self.time_mlp = nn.Sequential(
             SinusoidalPosEmb(dim),
@@ -423,16 +433,24 @@ class Unet3D(nn.Module):
             nn.GELU(),
             nn.Linear(time_dim, time_dim)
         )
+
+        # text conditioning
         self.has_cond = exists(cond_dim) or use_bert_text_cond
         cond_dim = BERT_MODEL_DIM if use_bert_text_cond else cond_dim
         self.null_cond_emb = nn.Parameter(
             torch.randn(1, cond_dim)) if self.has_cond else None
         cond_dim = time_dim + int(cond_dim or 0)
         self.downs = nn.ModuleList([])
+
+        # layers
         self.ups = nn.ModuleList([])
         num_resolutions = len(in_out)
+
+        # block type
         block_klass = partial(ResnetBlock, groups=resnet_groups)
         block_klass_cond = partial(block_klass, time_emb_dim=cond_dim)
+
+        # modules for all layers
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
             self.downs.append(nn.ModuleList([
@@ -538,6 +556,7 @@ class Unet3D(nn.Module):
             t = torch.cat((t, cond), dim=-1)
 
         h = []
+        # Downsampling Branch
         for block1, block2, spatial_attn, temporal_attn, downsample in self.downs:
             x = block1(x, t)
             x = block2(x, t)
@@ -551,6 +570,7 @@ class Unet3D(nn.Module):
         x = self.mid_temporal_attn(
             x, pos_bias=time_rel_pos_bias, focus_present_mask=focus_present_mask)
         x = self.mid_block2(x, t)
+        # Upsampling Branch
         for block1, block2, spatial_attn, temporal_attn, upsample in self.ups:
             x = torch.cat((x, h.pop()), dim=1)
             x = block1(x, t)
@@ -585,7 +605,7 @@ def cosine_beta_schedule(timesteps, s=0.008):
 class GaussianDiffusion_Nolatent(nn.Module):
     def __init__(
         self,
-        denoise_fn,
+        denoise_fn, # UNet forward
         *,
         image_size,
         num_frames,
