@@ -245,7 +245,7 @@ def main(conf: DictConfig):
     print("[Configuration Settings]")
     print(OmegaConf.to_yaml(conf))
 
-    LIDC_IDRI_list = [f for f in os.listdir(conf.lidc_dicom_path) if not f.startswith('.')]
+    LIDC_IDRI_list = [f for f in os.listdir(conf.lidc_dicom_path) if not f.startswith('.') and "LIDC-IDRI" in f]
     if conf.debug:
         LIDC_IDRI_list = LIDC_IDRI_list[:4]
     LIDC_IDRI_list.sort()
