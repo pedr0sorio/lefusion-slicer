@@ -20,27 +20,25 @@ It is composed of the code related to the slicer extension + the code related to
 
 ### Inpainting (LeFusion) Backend Setup
 
-- Create a virtual environment and activate it: `conda create -n lefusion python=3.10` followed by `conda activate lefusion`
 - Download the code: `git clone https://github.com/pedr0sorio/lefusion-slicer.git`
-- Check if your pip version is 22.3.1. If it is not, install pip version 22.3.1: `pip install pip==22.3.1`
-- Enter the LeFusion folder `cd lefusion-slicer/server` and run `pip install -r requirements.txt`
+- Enter the LeFusion folder `cd lefusion-slicer/server`
+- Create a virtual environment and activate it and install repo with poetry like so:
 
-#### Equivalent full bash command:
 ```bash
-conda create -n lefusion python=3.10
+# assuming lefusion-slicer/server
+conda env create -f environment.yml
 conda activate lefusion
-pip install pip==22.3.1
-cd lefusion-slicer/server
-pip install -r requirements.txt
+poetry config virtualenvs.create false
+poetry install
 ```
 
 #### Download the pre-trained LeFusion Model ([HuggingFace🤗](https://huggingface.co/YuheLiuu/LeFusion/tree/main/LIDC_LeFusion_Model))
 
-   The LeFusion authors pre-trained LeFusion Model, which has been trained for 50,001 steps on the LIDC-IDRI dataset. This pre-trained model can be directly used for Inference. Simply download it to `server/LeFusion_LIDC/LeFusion_model`.
+   The LeFusion authors pre-trained LeFusion Model, which has been trained for 50,001 steps on the LIDC-IDRI dataset. This pre-trained model can be directly used for Inference. Simply download it to `server/lefusion/LeFusion_model`.
 
    ```bash
    # Assuming cd is lefusion-slicer/server
-   cd LeFusion_LIDC
+   cd lefusion
    mkdir LeFusion_model
    cd LeFusion_model
    wget https://huggingface.co/YuheLiuu/LeFusion/resolve/main/LIDC_LeFusion_Model/model-50.pt -O model-50.pt

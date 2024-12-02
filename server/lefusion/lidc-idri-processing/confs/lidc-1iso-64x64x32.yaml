@@ -1,0 +1,20 @@
+#Path To LIDC Dataset
+lidc_dicom_path: ???
+
+prepare_dataset:
+  # Directory to save the output files
+  mask_path: null
+  image_path: null
+  meta_path: null
+  # Resolution of the training crops
+  training_resolution: [1.0, 1.0, 1.0]
+  # Dimensions of the training crops # NOTE will be permuted in the output files 
+  crop_dim: [64, 64, 32]
+  # Confidence level determines the overlap between the 4 doctors who have made annotation
+  confidence_level: 0.5
+  # Determines the isotropic real world dimensions of preprocessing lesion centred crops
+  # NOTE this is the size of the crops before they are resampled to the training resolution
+  padding: 80.0
+
+# debug
+debug: false

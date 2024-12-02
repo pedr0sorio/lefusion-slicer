@@ -9,6 +9,7 @@ import random
 
 from paths import SERVER_ASSET_DATA_DIR
 
+TARGET_RES = (1.0, 1.0, 1.0) # resolution expected by the model
 
 PREPROCESSING_TRANSORMS = tio.Compose([
     tio.Clamp(out_min=-1000, out_max=400),
@@ -23,7 +24,10 @@ POSTROCESSING_TRANSORMS = tio.Compose([
 ])
 
 PREPROCESSING_MASK_TRANSORMS = tio.Compose([
-    tio.CropOrPad(target_shape=(32, 64, 64))
+    tio.Resample(
+        target=TARGET_RES, label_interpolation="nearest",
+    ), # ensure to reshape mask to resolution of scan in slicer
+    tio.CropOrPad(target_shape=(32, 64, 64)) # center pad to expected crop size
 ])
 
 class LIDC3D_HIST_InSlicerDataset(Dataset):
@@ -63,7 +67,7 @@ class LIDC3D_HIST_InSlicerDataset(Dataset):
         npz_data_path = self.npz_file_names[index]
         # ... Load volume from path
         npz_data = self.load_npz_data(path = npz_data_path)
-        crop_scan = npz_data['data'][None, ...] # add channel dim for tio tfs
+        crop_scan = npz_data['data'][None, ...] # add channel/batch dim for tio tfs
         histogram = npz_data['histogram']
         bbox_kji = npz_data['boxes_numpy']
 
@@ -75,17 +79,19 @@ class LIDC3D_HIST_InSlicerDataset(Dataset):
             # Select random mask from assets
             mask_path = random.choice(self.template_mask_paths)
             # Load a random mask from assets for testing
-            mask = tio.LabelMap(mask_path) 
+            mask = tio.LabelMap(mask_path)
+            print(f"{mask.data.shape = }")
 
         crop_scan = self.preprocessing_img(crop_scan)
         mask = self.preprocessing_mask(mask)
+        print(f"{mask.data.shape = }")
 
         return {
             'GT': crop_scan,
             'GT_name': npz_data_path,
             'gt_keep_mask': mask.data,
             'histogram': histogram,
-            'bbox_kji': bbox_kji,
+            'bbox_kji': bbox_kji, # unused
         }
 
 
